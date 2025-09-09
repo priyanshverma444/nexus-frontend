@@ -34,21 +34,20 @@ const Challenges = () => {
   }, []);
 
   const handleChallengeUpdate = (updatedChallenge) => {
-    setChallengesData(challengesData.map(challenge => {
-      if (challenge._id === updatedChallenge._id) {
-        return updatedChallenge;
-      }
-      return challenge;
-    }));
+    setChallengesData((prev) =>
+      prev.map((challenge) =>
+        challenge._id === updatedChallenge._id ? updatedChallenge : challenge
+      )
+    );
   };
 
   const handleAdd = () => {
     setIsAdding(true);
-  }
+  };
 
   const handleCancel = () => {
     setIsAdding(false);
-  }
+  };
 
   const handleUpdate = async () => {
     if (!description.trim() && !challengeName.trim() && !platformName.trim()) {
@@ -63,19 +62,23 @@ const Challenges = () => {
     }
 
     try {
-      const response = await axios.post(`${backendUrl}/api/contests`, {
-        description: description,
-        platform: platformName,
-        name: challengeName
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+      const response = await axios.post(
+        `${backendUrl}/api/contests`,
+        {
+          description: description,
+          platform: platformName,
+          name: challengeName,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
         }
-      });
+      );
       if (response.status === 200) {
         const newChallenge = response.data;
-        setChallengesData([newChallenge, ...challengesData]);
+        setChallengesData((prev) => [newChallenge, ...prev]);
         setIsAdding(false);
         setDescription("");
         setChallengeName("");
@@ -89,8 +92,7 @@ const Challenges = () => {
         duration: 5000,
         isClosable: true,
       });
-    }
-    catch (error) {
+    } catch (error) {
       console.log(error);
       toast({
         title: "Error",
@@ -102,6 +104,9 @@ const Challenges = () => {
     }
   };
 
+  const sortedChallenges = [...challengesData].sort((a, b) =>
+    b.name.localeCompare(a.name)
+  );
 
   return (
     <div className="mb-14 p-2 flex flex-col space-y-5">
@@ -156,7 +161,7 @@ const Challenges = () => {
           )}
         </>
       )}
-      {challengesData.map((challenge) => (
+      {sortedChallenges.map((challenge) => (
         <Challenge
           key={challenge._id}
           challenge={challenge}

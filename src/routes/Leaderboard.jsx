@@ -10,7 +10,6 @@ import { fetchUserData } from "../services/userServices";
 import axios from "axios";
 import { useToast } from "@chakra-ui/react";
 
-
 const Leaderboard = () => {
     const toast = useToast();
     const backendUrl = import.meta.env.VITE_BACKEND_URI || "http://localhost:5001";
@@ -28,18 +27,21 @@ const Leaderboard = () => {
         });
     }, []);
 
-
     useEffect(() => {
         fetchChallengesData().then((data) => {
             if (data) {
-                setChallengesData(data);
+                // Sort challenges by name in descending order
+                const sortedData = data.sort((a, b) => b.name.localeCompare(a.name));
+                setChallengesData(sortedData);
             }
         });
     }, []);
 
     const handleGenerateStarterResult = async () => {
+        if (!challengesData.length) return;
+
         setIsGeneratingResult(true);
-        const contestName = challengesData[0].name;
+        const contestName = challengesData[0].name; // first challenge in descending order
 
         try {
             const res = await axios.get(`${backendUrl}/api/contests/codechef/generate/allwinners/${contestName}`, {
@@ -49,7 +51,6 @@ const Leaderboard = () => {
             });
 
             if (res.status === 200) {
-                console.log("Result Generated");
                 toast({
                     title: "Result Generated",
                     description: "Result generated successfully",
@@ -58,7 +59,6 @@ const Leaderboard = () => {
                     isClosable: true,
                 });
             } else {
-                console.error("Failed to generate result. Unexpected status:", res.status);
                 toast({
                     title: "Error",
                     description: "Failed to generate result",
@@ -96,8 +96,6 @@ const Leaderboard = () => {
             );
 
             if (response.status === 200) {
-                console.log(response);
-                console.log("Users Reset");
                 toast({
                     title: "Users Reset",
                     description: "Users reset successfully",
@@ -115,7 +113,7 @@ const Leaderboard = () => {
                 duration: 5000,
                 isClosable: true,
             });
-        }finally {
+        } finally {
             setIsResetingUser(false);
         }
     };
@@ -123,7 +121,10 @@ const Leaderboard = () => {
     return (
         <div className="mb-10 flex flex-col justify-around space-y-5 m-2">
             {challengesData.map((challenge, index) => (
-                <div key={index} className="flex flex-row min-[320px]:max-lg:flex-col items-center justify-between border border-zinc-700 rounded-xl p-5 bg-zinc-900/10">
+                <div
+                    key={index}
+                    className="flex flex-row min-[320px]:max-lg:flex-col items-center justify-between border border-zinc-700 rounded-xl p-5 bg-zinc-900/10"
+                >
                     <div className="flex items-center my-5 mx-2">
                         <SiCodechef className="text-7xl text-codechef" />
                         <h2 className="text-lg font-semibold text-gray-400 ml-2">{challenge.name}</h2>
@@ -135,9 +136,9 @@ const Leaderboard = () => {
                                     <div className="flex justify-center items-center space-x-3">
                                         <Button
                                             isLoading={isGeneratingResult}
-                                            loadingText='Generating Result'
-                                            colorScheme='gray'
-                                            spinnerPlacement='start'
+                                            loadingText="Generating Result"
+                                            colorScheme="gray"
+                                            spinnerPlacement="start"
                                             onClick={handleGenerateStarterResult}
                                             my={`2`}
                                         >
@@ -146,11 +147,11 @@ const Leaderboard = () => {
                                         </Button>
                                         <Button
                                             isLoading={isResetingUser}
-                                            loadingText='Resetting User'
-                                            bg='red.700'
+                                            loadingText="Resetting User"
+                                            bg="red.700"
                                             _hover={{ bg: 'red.600' }}
                                             color={'white'}
-                                            spinnerPlacement='start'
+                                            spinnerPlacement="start"
                                             onClick={handleResetCodechefUser}
                                             my={`2`}
                                         >
@@ -172,6 +173,6 @@ const Leaderboard = () => {
             ))}
         </div>
     );
-}
+};
 
 export default Leaderboard;
