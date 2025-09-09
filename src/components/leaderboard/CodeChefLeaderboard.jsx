@@ -36,76 +36,74 @@ const CodeChefLeaderboard = () => {
         setLeaderboardsData(data);
       } catch (error) {
         console.error(error);
-        // Handle error, show an error message, or set an error state
       }
     };
-
     fetchData();
   }, [contestName]);
 
   const categorizeWinnersByYearAndStars = () => {
     const categories = {};
-
     if (leaderboardsData && leaderboardsData.winners) {
       leaderboardsData.winners.forEach((winner) => {
         const yearOfStudy = winner.yearOfStudy || "Unknown Year";
-        const contestName = winner.contestName || "Unknown Contest";
-        const stars = contestName + " - (" + winner.stars + " Star)" || "No Stars";
+        const contestNameLocal = winner.contestName || "Unknown Contest";
+        const stars = contestNameLocal + " - (" + winner.stars + " Star)" || "No Stars";
 
-        if (!categories[yearOfStudy]) {
-          categories[yearOfStudy] = {};
-        }
-
-        if (!categories[yearOfStudy][stars]) {
-          categories[yearOfStudy][stars] = [];
-        }
-
+        if (!categories[yearOfStudy]) categories[yearOfStudy] = {};
+        if (!categories[yearOfStudy][stars]) categories[yearOfStudy][stars] = [];
         categories[yearOfStudy][stars].push(winner);
       });
 
-      // Sort and slice top 3 performers for each category
       Object.keys(categories).forEach((yearOfStudy) => {
         Object.keys(categories[yearOfStudy]).forEach((stars) => {
-          if (
-            stars.includes("1 Star") ||
-            stars.includes("2 Star") ||
-            stars.includes("3 Star") ||
-            stars.includes("4 Star") ||
-            stars.includes("5 Star")
-          ) {
-            categories[yearOfStudy][stars] = categories[yearOfStudy][stars]
-              .sort((a, b) => a.contestGlobalRank - b.contestGlobalRank);
-          }
+          categories[yearOfStudy][stars].sort(
+            (a, b) => a.contestGlobalRank - b.contestGlobalRank
+          );
         });
       });
-    }
 
+      const sortedCategories = {};
+      Object.keys(categories)
+        .sort((a, b) => {
+          if (a === "Unknown Year") return 1;
+          if (b === "Unknown Year") return -1;
+          return a - b;
+        })
+        .forEach((year) => {
+          const sortedStars = {};
+          Object.keys(categories[year])
+            .sort((a, b) => {
+              const getStarNumber = (str) => parseInt(str.match(/(\d+) Star/)[1]);
+              return getStarNumber(b) - getStarNumber(a);
+            })
+            .forEach((star) => {
+              sortedStars[star] = categories[year][star];
+            });
+          sortedCategories[year] = sortedStars;
+        });
+
+      return sortedCategories;
+    }
     return categories;
   };
 
   const getOrdinalSuffix = (i) => {
     const j = i % 10,
       k = i % 100;
-    if (j === 1 && k !== 11) {
-      return i + "st";
-    }
-    if (j === 2 && k !== 12) {
-      return i + "nd";
-    }
-    if (j === 3 && k !== 13) {
-      return i + "rd";
-    }
+    if (j === 1 && k !== 11) return i + "st";
+    if (j === 2 && k !== 12) return i + "nd";
+    if (j === 3 && k !== 13) return i + "rd";
     return i + "th";
   };
 
   const getMedalType = (position) => {
     switch (position) {
       case 1:
-        return "🥇"; // Gold medal emoji
+        return "🥇";
       case 2:
-        return "🥈"; // Silver medal emoji
+        return "🥈";
       case 3:
-        return "🥉"; // Bronze medal emoji
+        return "🥉";
       default:
         return "";
     }
@@ -117,15 +115,10 @@ const CodeChefLeaderboard = () => {
 
     Object.keys(categories).forEach((yearOfStudy) => {
       const yearData = [];
-
-      // Add a header for the year
       yearData.push([`Year - ${yearOfStudy}`]);
 
       Object.keys(categories[yearOfStudy]).forEach((stars) => {
-        // Add a header for the stars category
         yearData.push([`${stars}`]);
-
-        // Add column headers
         yearData.push([
           "Rank",
           "Student Name",
@@ -137,7 +130,6 @@ const CodeChefLeaderboard = () => {
           "CC Rank",
         ]);
 
-        // Add rows for each winner
         categories[yearOfStudy][stars].forEach((winner, index) => {
           yearData.push([
             getOrdinalSuffix(index + 1),
@@ -150,20 +142,14 @@ const CodeChefLeaderboard = () => {
             winner.contestGlobalRank,
           ]);
         });
-
-        // Add an empty row after each stars category
         yearData.push([]);
       });
 
-      // Create a worksheet for the year
       const worksheet = XLSX.utils.aoa_to_sheet(yearData);
-
-      // Add the worksheet to the workbook
       XLSX.utils.book_append_sheet(workbook, worksheet, `Year ${yearOfStudy}`);
     });
 
-    // Save the workbook
-    XLSX.writeFile(workbook, "Leaderboard.xlsx");
+    XLSX.writeFile(workbook, `${contestName}.xlsx`);
   };
 
   const categories = categorizeWinnersByYearAndStars();
@@ -190,7 +176,7 @@ const CodeChefLeaderboard = () => {
           {Object.keys(categories).map((yearOfStudy, index) => (
             <Tab
               key={index}
-              _selected={{ color: "white", bg: "orange" }} // Highlight active tab
+              _selected={{ color: "white", bg: "orange" }}
               style={{ fontSize: "1.2em", fontWeight: "bold" }}
             >{`Year - ${yearOfStudy}`}</Tab>
           ))}
@@ -284,27 +270,17 @@ const CodeChefLeaderboard = () => {
                               <Th style={{ fontSize: "1em", fontWeight: "bold", textAlign: "center" }}>
                                 Stars
                               </Th>
-                              <Th
-                                style={{ fontSize: "1em", fontWeight: "bold", textAlign: "center" }}
-                                isNumeric
-                              >
+                              <Th style={{ fontSize: "1em", fontWeight: "bold", textAlign: "center" }} isNumeric>
                                 CC Rank
                               </Th>
                             </Tr>
                           </Thead>
                           <Tbody>
                             {categories[yearOfStudy][stars].map((winner, winnerIndex) => (
-                              <Tr
-                                key={winnerIndex}
-                                style={{ fontSize: "1em", fontWeight: "bold" }}
-                              >
-                                <Td style={{ textAlign: "center" }}>
-                                  {getOrdinalSuffix(winnerIndex + 1)}
-                                </Td>
+                              <Tr key={winnerIndex} style={{ fontSize: "1em", fontWeight: "bold" }}>
+                                <Td style={{ textAlign: "center" }}>{getOrdinalSuffix(winnerIndex + 1)}</Td>
                                 <Td>
-                                  <div
-                                    style={{ display: "flex", alignItems: "center" }}
-                                  >
+                                  <div style={{ display: "flex", alignItems: "center" }}>
                                     <Image
                                       borderRadius="full"
                                       boxSize="50px"
@@ -315,20 +291,12 @@ const CodeChefLeaderboard = () => {
                                     {winner.username}
                                   </div>
                                 </Td>
-                                <Td style={{ textAlign: "center" }}>
-                                  {winner.yearOfStudy}
-                                </Td>
+                                <Td style={{ textAlign: "center" }}>{winner.yearOfStudy}</Td>
                                 <Td style={{ textAlign: "center" }}>{winner.branch}</Td>
+                                <Td style={{ textAlign: "center" }}>{winner.section}</Td>
+                                <Td style={{ textAlign: "center" }}>{winner.codechefId}</Td>
                                 <Td style={{ textAlign: "center" }}>
-                                  {winner.section}
-                                </Td>
-                                <Td style={{ textAlign: "center" }}>
-                                  {winner.codechefId}
-                                </Td>
-                                <Td style={{ textAlign: "center" }}>
-                                  <Tag
-                                    style={{ color: "white", backgroundColor: "black" }}
-                                  >
+                                  <Tag style={{ color: "white", backgroundColor: "black" }}>
                                     {winner.stars}
                                     <AiFillStar className="ml-2" />
                                   </Tag>
